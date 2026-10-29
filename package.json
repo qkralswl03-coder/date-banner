@@ -6,8 +6,8 @@
     "generate": "node generate-gifs.js"
   },
   "dependencies": {
-    "canvas": "^3.2.0",
-    "gifencoder": "^2.0.1",
+    "gifenc": "^1.0.3",
+    "pngjs": "^7.0.0",
     "puppeteer": "^24.0.0"
   }
 }
