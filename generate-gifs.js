@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
-const GIFEncoder = require('gifencoder');
-const { createCanvas, loadImage } = require('canvas');
+const { GIFEncoder, quantize, applyPalette } = require('gifenc');
+const { PNG } = require('pngjs');
 const fs = require('fs');
 
 const WIDTH = 860;
@@ -29,51 +29,41 @@ async function main() {
     waitUntil: 'networkidle0'
   });
 
-  await documentFontsReady(page);
-
-  const encoder = new GIFEncoder(WIDTH, HEIGHT);
-
-  encoder.createReadStream().pipe(
-    fs.createWriteStream(OUTPUT_FILE)
-  );
-
-  encoder.start();
-  encoder.setRepeat(0);
-  encoder.setDelay(100);
-  encoder.setQuality(10);
-
-  const canvas = createCanvas(WIDTH, HEIGHT);
-  const ctx = canvas.getContext('2d');
-
-  // 6초 동안 0.1초 간격으로 캡처
-  for (let i = 0; i < 60; i++) {
-    const screenshot = await page.screenshot({
-      type: 'png'
-    });
-
-    const image = await loadImage(screenshot);
-
-    ctx.clearRect(0, 0, WIDTH, HEIGHT);
-    ctx.drawImage(image, 0, 0, WIDTH, HEIGHT);
-
-    encoder.addFrame(ctx);
-
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
-
-  encoder.finish();
-
-  await browser.close();
-
-  console.log(`Created ${OUTPUT_FILE}`);
-}
-
-async function documentFontsReady(page) {
   await page.evaluate(async () => {
     if (document.fonts && document.fonts.ready) {
       await document.fonts.ready;
     }
   });
+
+  const gif = GIFEncoder();
+
+  // 약 6초 동안 0.1초 간격으로 실제 화면을 캡처
+  for (let i = 0; i < 60; i++) {
+    const screenshot = await page.screenshot({
+      type: 'png'
+    });
+
+    const png = PNG.sync.read(screenshot);
+
+    const palette = quantize(png.data, 256);
+    const index = applyPalette(png.data, palette);
+
+    gif.writeFrame(index, WIDTH, HEIGHT, {
+      palette,
+      delay: 100,
+      repeat: 0
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  gif.finish();
+
+  fs.writeFileSync(OUTPUT_FILE, Buffer.from(gif.bytes()));
+
+  await browser.close();
+
+  console.log(`Created ${OUTPUT_FILE}`);
 }
 
 main().catch(error => {
