@@ -1,0 +1,41 @@
+name: Generate Event GIF
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # 한국시간 매일 00:10 = UTC 전날 15:10
+    - cron: '10 15 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    env:
+      TZ: Asia/Seoul
+
+    steps:
+      - name: Get files
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install packages
+        run: npm install
+
+      - name: Generate GIF
+        run: npm run generate
+
+      - name: Save new GIF
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add event-banner.gif
+          git diff --cached --quiet || git commit -m "Update event banner"
+          git push
