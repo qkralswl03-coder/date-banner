@@ -3,8 +3,8 @@ const { GIFEncoder, quantize, applyPalette } = require('gifenc');
 const { PNG } = require('pngjs');
 const fs = require('fs');
 
-const WIDTH = 860;
-const HEIGHT = 200;
+const WIDTH = 780;
+const HEIGHT = 150;
 
 const PAGE_URL =
   'https://qkralswl03-coder.github.io/date-banner/index-1.html';
